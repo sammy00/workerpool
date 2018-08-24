@@ -17,7 +17,7 @@ func SayWorld(ctx context.Context) error {
 	return nil
 }
 
-func ExamplePool_Execute() {
+func ExamplePool() {
 	pool, cancel := workerpool.Pool(2)
 	defer cancel()
 

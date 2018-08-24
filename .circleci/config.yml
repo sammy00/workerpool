@@ -6,4 +6,5 @@ jobs:
     working_directory: /go/src/github.com/sammy00/workerpool
     steps:
       - checkout 
-      - run: go test -v ./...
+      - run: go test -v -race $(go list ./... | grep -v /vendor/) -coverprofile=coverage.txt
+      - run: bash <(curl -s https://codecov.io/bash) -t dfd9058f-10ed-4c5d-a0c3-0b41a0faea1a

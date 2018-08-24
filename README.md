@@ -1,5 +1,8 @@
 # workerpool
 
+[![CircleCI](https://circleci.com/gh/sammy00/workerpool.svg?style=svg)](https://circleci.com/gh/sammy00/workerpool)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sammy00/workerpool)](https://goreportcard.com/report/github.com/sammy00/workerpool)
+
 A Implementation of a Worker Pool Capable of Coordinating Routines in Golang
 
 ## Overview  
