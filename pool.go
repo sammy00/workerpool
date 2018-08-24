@@ -48,7 +48,7 @@ enqueue:
 			err = ctx.Err()
 			break enqueue
 		case p.in <- pa: // enqueue action
-			queued++
+			queued++ // double-check if thread-safe needed
 		}
 	}
 
