@@ -13,8 +13,9 @@ type poolAction struct {
 }
 
 type pool struct {
-	done <-chan struct{}
-	in   chan poolAction
+	//done <-chan struct{}
+	ctx context.Context
+	in  chan poolAction
 }
 
 // Execute enqueues all Actions on the worker pool, failing closed on the
@@ -39,7 +40,8 @@ enqueue:
 	for _, action := range actions {
 		pa := poolAction{ctx: ctx, action: action, response: res}
 		select {
-		case <-p.done: // pool is closed
+		//case <-p.done: // pool is closed
+		case <-p.ctx.Done(): // pool is closed
 			cancel()
 			return errors.New("pool is closed")
 		case <-ctx.Done(): // ctx is closed by caller
@@ -62,10 +64,11 @@ enqueue:
 	return err
 }
 
-func (p pool) work(in <-chan poolAction, done <-chan struct{}) {
+//func (p pool) work(in <-chan poolAction, done <-chan struct{}) {
+func (p pool) work(in <-chan poolAction) {
 	for {
 		select {
-		case <-done:
+		case <-p.ctx.Done():
 			return
 		case a := <-in:
 			a.response <- a.action.Execute(a.ctx)
@@ -77,16 +80,19 @@ func (p pool) work(in <-chan poolAction, done <-chan struct{}) {
 // can be in-flight simultaneously; if n is less than or equal to zero,
 // runtime.NumCPU is used. The done channel should be closed to release
 // resources held by the Executor.
-func Pool(n int, done <-chan struct{}) Executor {
+//func Pool(n int, done <-chan struct{}) Executor {
+func Pool(n int) (Executor, context.CancelFunc) {
 	if n <= 0 {
 		n = runtime.NumCPU()
 	}
 
-	p := pool{done: done, in: make(chan poolAction, n)}
+	ctx, cancel := context.WithCancel(context.Background())
+	p := pool{ctx: ctx, in: make(chan poolAction, n)}
 
 	for i := 0; i < n; i++ {
-		go p.work(p.in, p.done)
+		//go p.work(p.in, p.done)
+		go p.work(p.in)
 	}
 
-	return p
+	return p, cancel
 }
