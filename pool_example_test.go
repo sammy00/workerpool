@@ -29,7 +29,7 @@ func ExamplePool() {
 		workerpool.ActionFunc(SayHello),
 	}
 
-	if err := pool.Execute(ctx, actions); nil != err {
+	if err := pool.Execute(ctx, actions...); nil != err {
 		fmt.Println(err)
 		return
 	}

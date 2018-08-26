@@ -22,7 +22,7 @@ type pool struct {
 // first error or if ctx is cancelled. This method blocks until all enqueued
 // Actions have returned. In the event of an error, not all Actions may be
 // executed.
-func (p pool) Execute(ctx context.Context, actions []Action) error {
+func (p pool) Execute(ctx context.Context, actions ...Action) error {
 	qty := len(actions)
 	if qty == 0 {
 		return nil
@@ -52,6 +52,7 @@ enqueue:
 		}
 	}
 
+	// fail fast
 	for ; queued > 0; queued-- {
 		if r := <-res; r != nil {
 			if err == nil {
