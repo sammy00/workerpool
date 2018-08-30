@@ -13,7 +13,6 @@ type poolAction struct {
 }
 
 type pool struct {
-	//done <-chan struct{}
 	ctx context.Context
 	in  chan poolAction
 }
@@ -65,13 +64,13 @@ enqueue:
 	return err
 }
 
-//func (p pool) work(in <-chan poolAction, done <-chan struct{}) {
-func (p pool) work(in <-chan poolAction) {
+// fork a worker responsible of taking job from p.in to do
+func (p pool) fork() {
 	for {
 		select {
 		case <-p.ctx.Done():
 			return
-		case a := <-in:
+		case a := <-p.in:
 			a.response <- a.action.Execute(a.ctx)
 		}
 	}
@@ -91,8 +90,7 @@ func Pool(n int) (Executor, context.CancelFunc) {
 	p := pool{ctx: ctx, in: make(chan poolAction, n)}
 
 	for i := 0; i < n; i++ {
-		//go p.work(p.in, p.done)
-		go p.work(p.in)
+		go p.fork()
 	}
 
 	return p, cancel

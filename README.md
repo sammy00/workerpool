@@ -2,6 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/sammy00/workerpool.svg?style=svg)](https://circleci.com/gh/sammy00/workerpool)
 [![codecov](https://codecov.io/gh/sammy00/workerpool/branch/master/graph/badge.svg)](https://codecov.io/gh/sammy00/workerpool)
+[![API Reference](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/sammy00/workerpool) 
 [![Go Report Card](https://goreportcard.com/badge/github.com/sammy00/workerpool)](https://goreportcard.com/report/github.com/sammy00/workerpool)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
