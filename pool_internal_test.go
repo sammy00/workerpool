@@ -24,9 +24,9 @@ func TestPool(t *testing.T) {
 		defer cancel()
 
 		pool := exec.(pool)
-		if cap(pool.in) != c.expect {
+		if cap(pool.pendings) != c.expect {
 			t.Fatalf("#%d failed: got pool size as %d, expect %d",
-				i, cap(pool.in), c.expect)
+				i, cap(pool.pendings), c.expect)
 		}
 	}
 }

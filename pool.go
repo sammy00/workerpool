@@ -13,8 +13,8 @@ type poolAction struct {
 }
 
 type pool struct {
-	ctx context.Context
-	in  chan poolAction
+	ctx      context.Context
+	pendings chan poolAction
 }
 
 // Execute enqueues all Actions on the worker pool, failing closed on the
@@ -46,7 +46,7 @@ enqueue:
 		case <-ctx.Done(): // ctx is closed by caller
 			err = ctx.Err()
 			break enqueue
-		case p.in <- pa: // enqueue action
+		case p.pendings <- pa: // enqueue action
 			queued++ // double-check if thread-safe needed
 		}
 	}
@@ -70,7 +70,7 @@ func (p pool) fork() {
 		select {
 		case <-p.ctx.Done():
 			return
-		case a := <-p.in:
+		case a := <-p.pendings:
 			a.response <- a.action.Execute(a.ctx)
 		}
 	}
@@ -87,7 +87,7 @@ func Pool(n int) (Executor, context.CancelFunc) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	p := pool{ctx: ctx, in: make(chan poolAction, n)}
+	p := pool{ctx: ctx, pendings: make(chan poolAction, n)}
 
 	for i := 0; i < n; i++ {
 		go p.fork()
