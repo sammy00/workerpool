@@ -30,8 +30,10 @@ func Sleep(ctx context.Context) error {
 }
 
 func TestPool_Execute_ErrAction(t *testing.T) {
-	pool, cancel := workerpool.Pool(1)
-	defer cancel()
+	//pool, cancel := workerpool.Pool(1)
+	//defer cancel()
+	pool := workerpool.Pool(1)
+	defer pool.Close()
 
 	ctx := context.TODO()
 	actions := []workerpool.Action{
@@ -58,8 +60,10 @@ func TestPool_Execute_ErrAction(t *testing.T) {
 }
 
 func TestPool_Execute_CancelledByCaller(t *testing.T) {
-	pool, cancel := workerpool.Pool(1)
-	defer cancel()
+	//pool, cancel := workerpool.Pool(1)
+	//defer cancel()
+	pool := workerpool.Pool(1)
+	defer pool.Close()
 
 	ctx, cancel2 := context.WithCancel(context.Background())
 
@@ -88,8 +92,10 @@ func TestPool_Execute_CancelledByCaller(t *testing.T) {
 }
 
 func TestPool_Execute_Close(t *testing.T) {
-	pool, cancel := workerpool.Pool(1)
-	defer cancel()
+	//pool, cancel := workerpool.Pool(1)
+	//defer cancel()
+	pool := workerpool.Pool(1)
+	defer pool.Close()
 
 	var err error
 	done := make(chan bool)
@@ -104,7 +110,8 @@ func TestPool_Execute_Close(t *testing.T) {
 		done <- true
 	}()
 
-	cancel()
+	//cancel()
+	pool.Close()
 	<-done
 
 	expect := "pool is closed"
@@ -117,8 +124,10 @@ func TestPool_Execute_Close(t *testing.T) {
 }
 
 func TestPool_Execute_NoAction(t *testing.T) {
-	pool, cancel := workerpool.Pool(1)
-	defer cancel()
+	//pool, cancel := workerpool.Pool(1)
+	//defer cancel()
+	pool := workerpool.Pool(1)
+	defer pool.Close()
 
 	ctx := context.TODO()
 	if err := pool.Execute(ctx); nil != err {

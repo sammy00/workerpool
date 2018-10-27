@@ -20,8 +20,10 @@ func TestPool(t *testing.T) {
 	}
 
 	for i, c := range testCases {
-		exec, cancel := Pool(c.n)
-		defer cancel()
+		//exec, cancel := Pool(c.n)
+		//defer cancel()
+		exec := Pool(c.n)
+		defer exec.Close()
 
 		pool := exec.(pool)
 		if cap(pool.pendings) != c.expect {

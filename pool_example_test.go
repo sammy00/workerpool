@@ -18,8 +18,10 @@ func SayWorld(ctx context.Context) error {
 }
 
 func ExamplePool() {
-	pool, cancel := workerpool.Pool(2)
-	defer cancel()
+	//pool, cancel := workerpool.Pool(2)
+	//defer cancel()
+	pool := workerpool.Pool(2)
+	defer pool.Close()
 
 	ctx := context.TODO()
 	actions := []workerpool.Action{

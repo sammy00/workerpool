@@ -12,6 +12,7 @@ type Action interface {
 // An Executor performs a set of Actions. It is up to the implementing type
 // to define the concurrency and open/closed failure behavior of the actions.
 type Executor interface {
+	Close() error
 	// Execute performs all provided actions by calling their Execute method.
 	// This method should make a best-effort to cancel outstanding actions if the
 	// provided ctx is cancelled.

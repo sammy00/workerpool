@@ -14,7 +14,17 @@ type poolAction struct {
 
 type pool struct {
 	ctx      context.Context
+	cancel   context.CancelFunc
 	pendings chan poolAction
+}
+
+func (p pool) Close() error {
+	if nil == p.cancel {
+		return errors.New("pool isn't active")
+	}
+
+	p.cancel()
+	return nil
 }
 
 // Execute enqueues all Actions on the worker pool, failing closed on the
@@ -81,17 +91,18 @@ func (p pool) fork() {
 // runtime.NumCPU is used. The done channel should be closed to release
 // resources held by the Executor.
 //func Pool(n int, done <-chan struct{}) Executor {
-func Pool(n int) (Executor, context.CancelFunc) {
+//func Pool(n int) (Executor, context.CancelFunc) {
+func Pool(n int) Executor {
 	if n <= 0 {
 		n = runtime.NumCPU()
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	p := pool{ctx: ctx, pendings: make(chan poolAction, n)}
+	p := pool{ctx: ctx, cancel: cancel, pendings: make(chan poolAction, n)}
 
 	for i := 0; i < n; i++ {
 		go p.fork()
 	}
 
-	return p, cancel
+	return p
 }
