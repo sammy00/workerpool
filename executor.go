@@ -16,8 +16,7 @@ type Executor interface {
 	// Execute performs all provided actions by calling their Execute method.
 	// This method should make a best-effort to cancel outstanding actions if the
 	// provided ctx is cancelled.
-	//Execute(ctx context.Context, actions []Action) error
-	Execute(ctx context.Context, actions ...Action) error
+	Execute(ctx context.Context, actions []Action, failFast bool) error
 }
 
 // ActionFunc permits using a standalone function as an Action.

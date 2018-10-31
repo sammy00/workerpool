@@ -20,8 +20,6 @@ func TestPool(t *testing.T) {
 	}
 
 	for i, c := range testCases {
-		//exec, cancel := Pool(c.n)
-		//defer cancel()
 		exec := Pool(c.n)
 		defer exec.Close()
 

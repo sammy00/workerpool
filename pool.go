@@ -19,9 +19,9 @@ type pool struct {
 }
 
 func (p pool) Close() error {
-	if nil == p.cancel {
-		return errors.New("pool isn't active")
-	}
+	//if nil == p.cancel { // remove the redundant checking
+	//	return errors.New("pool isn't active")
+	//}
 
 	p.cancel()
 	return nil
@@ -31,7 +31,9 @@ func (p pool) Close() error {
 // first error or if ctx is cancelled. This method blocks until all enqueued
 // Actions have returned. In the event of an error, not all Actions may be
 // executed.
-func (p pool) Execute(ctx context.Context, actions ...Action) error {
+//func (p pool) Execute(ctx context.Context, actions ...Action) error {
+func (p pool) Execute(ctx context.Context, actions []Action,
+	failFast bool) error {
 	qty := len(actions)
 	if qty == 0 {
 		return nil
@@ -49,7 +51,6 @@ enqueue:
 	for _, action := range actions {
 		pa := poolAction{ctx: ctx, action: action, response: res}
 		select {
-		//case <-p.done: // pool is closed
 		case <-p.ctx.Done(): // pool is closed
 			cancel()
 			return errors.New("pool is closed")
@@ -61,11 +62,11 @@ enqueue:
 		}
 	}
 
-	// fail fast
 	for ; queued > 0; queued-- {
-		if r := <-res; r != nil {
-			if err == nil {
-				err = r
+		if r := <-res; r != nil && nil == err {
+			err = r
+
+			if failFast { // should cancel all running jobs if fail fast is required
 				cancel()
 			}
 		}
