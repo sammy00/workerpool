@@ -19,10 +19,6 @@ type pool struct {
 }
 
 func (p pool) Close() error {
-	//if nil == p.cancel { // remove the redundant checking
-	//	return errors.New("pool isn't active")
-	//}
-
 	p.cancel()
 	return nil
 }
@@ -33,7 +29,7 @@ func (p pool) Close() error {
 // executed.
 //func (p pool) Execute(ctx context.Context, actions ...Action) error {
 func (p pool) Execute(ctx context.Context, actions []Action,
-	failFast bool) error {
+	failFast ...bool) error {
 	qty := len(actions)
 	if qty == 0 {
 		return nil
@@ -66,7 +62,7 @@ enqueue:
 		if r := <-res; r != nil && nil == err {
 			err = r
 
-			if failFast { // should cancel all running jobs if fail fast is required
+			if len(failFast) > 0 && failFast[0] { // should cancel all running jobs if fail fast is required
 				cancel()
 			}
 		}
