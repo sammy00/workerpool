@@ -94,7 +94,6 @@ enqueue:
 
 // fork a worker responsible of taking job from p.in to do
 func (p *pool) fork() {
-	p.execWG.Add(1)
 	defer p.execWG.Done()
 
 	for {
@@ -106,9 +105,7 @@ func (p *pool) fork() {
 				return // no more actions to take after quitting
 			}
 
-			p.execWG.Add(1)
 			a.response <- a.action.Execute(a.ctx)
-			p.execWG.Done()
 		}
 	}
 }
@@ -129,6 +126,7 @@ func Pool(n int) Executor {
 	}
 
 	for i := 0; i < n; i++ {
+		p.execWG.Add(1)
 		go p.fork()
 	}
 
