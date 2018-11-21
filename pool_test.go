@@ -29,6 +29,28 @@ func Sleep(ctx context.Context) error {
 	return err
 }
 
+func TestPool_Close(t *testing.T) {
+	testCases := []struct {
+		worker workerpool.Executor
+		nClose int
+		expect error
+	}{
+		{workerpool.Pool(2), 1, nil},
+		{workerpool.Pool(2), 2, workerpool.ErrClosed},
+	}
+
+	for i, c := range testCases {
+		var got error
+		for ; c.nClose > 0; c.nClose-- {
+			got = c.worker.Close()
+		}
+
+		if got != c.expect {
+			t.Fatalf("#%d unexpected error: got %v, expect %v", i, got, c.expect)
+		}
+	}
+}
+
 func TestPool_Execute(t *testing.T) {
 	earlyCancelCtx, earlyCancel := context.WithCancel(context.Background())
 

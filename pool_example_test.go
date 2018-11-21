@@ -18,10 +18,8 @@ func SayWorld(ctx context.Context) error {
 }
 
 func ExamplePool() {
-	//pool, cancel := workerpool.Pool(2)
-	//defer cancel()
 	pool := workerpool.Pool(2)
-	defer pool.Close()
+	//defer pool.Close()
 
 	ctx := context.TODO()
 	actions := []workerpool.Action{
@@ -34,6 +32,12 @@ func ExamplePool() {
 	if err := pool.Execute(ctx, actions, false); nil != err {
 		fmt.Println(err)
 		return
+	}
+
+	pool.Close()
+
+	if err := pool.Execute(ctx, actions); workerpool.ErrClosed != err {
+		fmt.Println("unexpected error:", err)
 	}
 
 	// Unordered output:

@@ -1,3 +1,3 @@
 package workerpool
 
-var _ Executor = pool{}
+var _ Executor = new(pool)

@@ -21,12 +21,13 @@ func TestPool(t *testing.T) {
 
 	for i, c := range testCases {
 		exec := Pool(c.n)
-		defer exec.Close()
 
-		pool := exec.(pool)
+		pool := exec.(*pool)
 		if cap(pool.pendings) != c.expect {
 			t.Fatalf("#%d failed: got pool size as %d, expect %d",
 				i, cap(pool.pendings), c.expect)
 		}
+
+		exec.Close()
 	}
 }
