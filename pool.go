@@ -100,11 +100,7 @@ func (p *pool) fork() {
 		select {
 		case <-p.quit:
 			return
-		case a, ok := <-p.pendings:
-			if !ok {
-				return // no more actions to take after quitting
-			}
-
+		case a := <-p.pendings:
 			a.response <- a.action.Execute(a.ctx)
 		}
 	}
