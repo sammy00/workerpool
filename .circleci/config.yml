@@ -3,8 +3,8 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.11.0
-    working_directory: /go/src/github.com/sammy00/workerpool
+    working_directory: /go/src/github.com/sammyne/workerpool
     steps:
-      - checkout 
+      - checkout
       - run: go test -v -race $(go list ./... | grep -v /vendor/) -coverprofile=coverage.txt
       - run: bash <(curl -s https://codecov.io/bash) -t dfd9058f-10ed-4c5d-a0c3-0b41a0faea1a
