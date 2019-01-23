@@ -1,1 +1,1 @@
-module github.com/sammy00/workerpool
+module github.com/sammyne/workerpool

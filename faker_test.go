@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sammy00/workerpool"
+	"github.com/sammyne/workerpool"
 )
 
 var errFailure = errors.New("failure")

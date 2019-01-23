@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sammy00/workerpool"
+	"github.com/sammyne/workerpool"
 )
 
 func SayErr(ctx context.Context) error {

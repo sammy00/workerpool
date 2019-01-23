@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sammy00/workerpool"
+	"github.com/sammyne/workerpool"
 )
 
 func SayHello(ctx context.Context) error {
