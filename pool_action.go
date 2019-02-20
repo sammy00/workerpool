@@ -26,24 +26,3 @@ func (action *poolAction) Execute() {
 		action.doneCallback()
 	}
 }
-
-/*
-func dummyDoneCallback() {}
-
-func newPoolAction(ctx context.Context, job Action, response chan<- error,
-	nActivePeers *int32, doneCallback ...func()) *poolAction {
-
-	cb := dummyDoneCallback
-	if len(doneCallback) > 0 {
-		cb = doneCallback[0]
-	}
-
-	return &poolAction{
-		ctx:          ctx,
-		action:       job,
-		response:     response,
-		nActivePeers: nActivePeers,
-		doneCallback: cb,
-	}
-}
-*/

@@ -11,8 +11,7 @@ type pool struct {
 
 	quit     chan struct{}
 	quitOnce sync.Once
-	//status   Status
-	execWG sync.WaitGroup
+	execWG   sync.WaitGroup
 }
 
 func (p *pool) Close() error {
@@ -62,6 +61,9 @@ func (p *pool) Execute(ctx context.Context, actions []Action) <-chan error {
 		return nil
 	}
 
+	// unblocked in case of cancellation or quit
+	orDone := &orDone{ctx, p.quit}
+
 	responses := make(chan error, int(nPending)+1)
 	var oncer sync.Once
 	closer := func() {
@@ -70,14 +72,10 @@ func (p *pool) Execute(ctx context.Context, actions []Action) <-chan error {
 
 enqueue:
 	for _, action := range actions {
-		//pa := newPoolAction(ctx, action, responses, &qty, closer)
-		pending := &poolAction{ctx, action, responses, &nPending, closer}
+		pending := &poolAction{orDone, action, responses, &nPending, closer}
 		select {
-		case <-p.quit: // pool is closed
-			responses <- ErrClosed
-			break enqueue
-		case <-ctx.Done(): // ctx is closed by caller
-			responses <- ctx.Err()
+		case <-orDone.Done():
+			responses <- orDone.Err()
 			break enqueue
 		case p.pendings <- pending: // enqueue action
 		}
@@ -95,7 +93,6 @@ func (p *pool) fork() {
 		case <-p.quit:
 			return
 		case a := <-p.pendings:
-			//a.response <- a.action.Execute(a.ctx)
 			a.Execute()
 		}
 	}
@@ -113,7 +110,6 @@ func Pool(n int) Executor {
 	p := &pool{
 		pendings: make(chan *poolAction, n),
 		quit:     make(chan struct{}),
-		//status:   Runnable,
 	}
 
 	for i := 0; i < n; i++ {
