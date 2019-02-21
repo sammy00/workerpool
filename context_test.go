@@ -12,18 +12,15 @@ func TestOrDone_Done(t *testing.T) {
 	done := make(chan struct{})
 	close(done)
 
-	testCases := []struct {
-		orDone *orDone
-		expect <-chan struct{}
-	}{
-		{&orDone{Context: ctx, done: make(chan struct{})}, ctx.Done()},
-		{&orDone{context.TODO(), done}, done},
+	// none of below shoule be blocking
+	// otherwise, the timeout stemming from blocking will fail the test
+	testCases := []*orDone{
+		&orDone{Context: ctx, done: make(chan struct{})},
+		&orDone{context.TODO(), done},
 	}
 
-	for i, c := range testCases {
-		if got := c.orDone.Done(); got != c.expect {
-			t.Fatalf("#%d unexpected done channel", i)
-		}
+	for _, c := range testCases {
+		<-c.Done()
 	}
 }
 

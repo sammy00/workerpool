@@ -2,6 +2,7 @@ package workerpool
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 )
 
@@ -25,4 +26,5 @@ func (action *poolAction) Execute() {
 	if n := atomic.AddInt32(action.nPendingPeers, -1); 0 == n {
 		action.doneCallback()
 	}
+	fmt.Println("n=", *action.nPendingPeers)
 }

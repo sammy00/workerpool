@@ -33,6 +33,8 @@ func TestPool(t *testing.T) {
 	}
 }
 
+// this test demonstrate the scenario when all workers have quit,
+// followed by the closing operation without a non-empty pending queue
 func TestPool_Close_drainPending(t *testing.T) {
 	dummyJob := func(context.Context) error {
 		return nil

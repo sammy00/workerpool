@@ -2,6 +2,7 @@ package workerpool
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"sync"
 )
@@ -20,8 +21,12 @@ func (p *pool) Close() error {
 
 	p.quitOnce.Do(func() {
 		close(p.quit)
+		// order of waiting should be taken more serious consideration later
 		p.workerWG.Wait() // wait for exit of workers
-		p.execWG.Wait()   // wait for exit of all active actions
+		fmt.Println("#2")
+		p.execWG.Wait() // wait for exit of all active actions
+
+		fmt.Println("#1")
 
 		close(p.pendings)
 		// drain the pendings channel the invoke the callback
@@ -29,6 +34,7 @@ func (p *pool) Close() error {
 		for pending := range p.pendings {
 			pending.doneCallback(ErrClosed)
 		}
+		fmt.Println("#0")
 
 		err = nil
 	})
@@ -59,7 +65,9 @@ func (p *pool) Execute(ctx context.Context, actions []Action) <-chan error {
 
 	nPending := int32(len(actions))
 	if nPending == 0 {
-		return nil
+		responses := make(chan error)
+		close(responses)
+		return responses
 	}
 
 	// unblocked in case of cancellation or quit
@@ -68,25 +76,34 @@ func (p *pool) Execute(ctx context.Context, actions []Action) <-chan error {
 	responses := make(chan error, int(nPending)+1)
 	var oncer sync.Once
 	closer := func(err ...error) {
+		fmt.Println("77")
 		oncer.Do(func() {
 			if len(err) > 0 {
 				responses <- err[0]
 			}
+			fmt.Println("hi")
 
 			close(responses)
 		})
 	}
 
+	done := orDone.Done()
 enqueue:
 	for _, action := range actions {
 		pending := &poolAction{orDone, action, responses, &nPending, closer}
 		select {
-		case <-orDone.Done():
-			responses <- orDone.Err()
+		case <-done:
+			//responses <- orDone.Err()
+			// orDone.Err() should be pushed into responses by the closer()
+			// either by the pool.Close(), or
+			// by the last unblocked action within this batch
+			closer(ctx.Err()) // signal of early abort
 			break enqueue
 		case p.pendings <- pending: // enqueue action
 		}
 	}
+
+	fmt.Println("000")
 
 	return responses
 }
@@ -97,6 +114,13 @@ func (p *pool) fork() {
 	defer p.workerWG.Done()
 
 	for {
+
+		// favor quit checking
+		select {
+		case <-p.quit:
+		default:
+		}
+
 		select {
 		case <-p.quit:
 			return

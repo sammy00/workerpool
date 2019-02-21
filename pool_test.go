@@ -50,6 +50,87 @@ func TestPool_Close(t *testing.T) {
 		}
 	}
 }
+func TestPool_Execute_afterQuit(t *testing.T) {
+	pool := workerpool.Pool(3)
+	pool.Close()
+
+	dummyJob := workerpool.ActionFunc(
+		func(ctx context.Context) error {
+			time.Sleep(time.Millisecond * 500)
+			return nil
+		})
+	jobs := []workerpool.Action{dummyJob, dummyJob, dummyJob, dummyJob}
+
+	for response := range pool.Execute(context.TODO(), jobs) {
+		if response != workerpool.ErrClosed {
+			t.Fatalf("unexpected error: got %v, expect %v", response,
+				workerpool.ErrClosed)
+		}
+	}
+}
+
+func TestPool_Execute_earlyQuit(t *testing.T) {
+	pool := workerpool.Pool(1)
+	//pool.Close()
+
+	//var doing int32
+	doing := make(chan struct{}, 3)
+	dummyJob := workerpool.ActionFunc(
+		func(ctx context.Context) error {
+			//atomic.AddInt32(&doing, 1)
+			doing <- struct{}{}
+			<-ctx.Done()
+			return ctx.Err()
+		})
+	jobs := []workerpool.Action{dummyJob, dummyJob, dummyJob}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+
+		//for 0 == atomic.LoadInt32(&doing) {
+		//}
+		<-doing
+		fmt.Println("hello")
+
+		pool.Close()
+	}()
+
+	for response := range pool.Execute(context.TODO(), jobs) {
+		if response != workerpool.ErrClosed {
+			t.Fatalf("unexpected error: got %v, expect %v", response,
+				workerpool.ErrClosed)
+		}
+	}
+
+	<-done
+}
+
+func TestPool_Execute_noJob(t *testing.T) {
+	pool := workerpool.Pool(3)
+	defer pool.Close()
+
+	<-pool.Execute(context.TODO(), nil)
+}
+
+func TestPool_Execute_ok(t *testing.T) {
+	dummyJob := workerpool.ActionFunc(
+		func(ctx context.Context) error {
+			time.Sleep(time.Millisecond * 500)
+			return nil
+		})
+	jobs := []workerpool.Action{dummyJob, dummyJob, dummyJob, dummyJob}
+
+	pool := workerpool.Pool(3)
+	defer pool.Close()
+
+	responses := pool.Execute(context.TODO(), jobs)
+	for response := range responses {
+		if nil != response {
+			t.Fatalf("unexpected error: %v", response)
+		}
+	}
+}
 
 /*
 func TestPool_Execute(t *testing.T) {
@@ -132,6 +213,7 @@ func TestPool_Execute(t *testing.T) {
 	}
 }
 
+/*
 func TestPool_Execute_FailFast(t *testing.T) {
 	progress := new(int32)
 	pinepline := MockErrPinepline(progress)
