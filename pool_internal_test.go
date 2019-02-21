@@ -31,3 +31,7 @@ func TestPool(t *testing.T) {
 		exec.Close()
 	}
 }
+
+//func TestPool_Close(t *testing.T) {
+//	pool := Pool(2)
+//}

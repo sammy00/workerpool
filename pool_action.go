@@ -12,8 +12,7 @@ type poolAction struct {
 	// #(pending jobs) submit in the same batch to Execute
 	// zero-value means doneCallback should be invoked
 	nPendingPeers *int32
-	//doneCallback  func()
-	doneCallback func(err ...error)
+	doneCallback  func(err ...error)
 }
 
 func (action *poolAction) Execute() {
@@ -22,7 +21,7 @@ func (action *poolAction) Execute() {
 	}
 
 	// no more peer jobs are pending, the last should be responsible of
-	// closing the response channel to signal an end
+	// signal the end of the bounded batch processing
 	if n := atomic.AddInt32(action.nPendingPeers, -1); 0 == n {
 		action.doneCallback()
 	}

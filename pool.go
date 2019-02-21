@@ -26,7 +26,7 @@ func (p *pool) Close() error {
 		// drain the pendings channel the invoke the callback
 		// to achieve a graceful quit
 		for pending := range p.pendings {
-			pending.doneCallback()
+			pending.doneCallback(ErrClosed)
 		}
 
 		err = nil

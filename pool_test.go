@@ -1,6 +1,5 @@
 package workerpool_test
 
-/*
 import (
 	"context"
 	"errors"
@@ -52,6 +51,7 @@ func TestPool_Close(t *testing.T) {
 	}
 }
 
+/*
 func TestPool_Execute(t *testing.T) {
 	earlyCancelCtx, earlyCancel := context.WithCancel(context.Background())
 
