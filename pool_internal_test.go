@@ -35,18 +35,14 @@ func TestPool(t *testing.T) {
 
 // this test demonstrate the scenario when all workers have quit,
 // followed by the closing operation without a non-empty pending queue
-func TestPool_Close_drainPending(t *testing.T) {
+func TestPool_Close_drainTodos(t *testing.T) {
 	dummyJob := func(context.Context) error {
 		return nil
 	}
-	response := make(chan error, 1)
-	var nPendingPeers int32 = 123
 
 	var cbErr error
-	doneSpy := func(err ...error) {
-		if len(err) > 0 {
-			cbErr = err[0]
-		}
+	doneSpy := func(err error) {
+		cbErr = err
 	}
 
 	pool := Pool(2).(*pool)
@@ -59,11 +55,9 @@ func TestPool_Close_drainPending(t *testing.T) {
 	}()
 
 	pool.workerWG.Wait()
-	pool.pendings <- &poolAction{
+	pool.pendings <- &todo{
 		context.TODO(),
 		ActionFunc(dummyJob),
-		response,
-		&nPendingPeers,
 		doneSpy,
 	}
 	pool.execWG.Done()

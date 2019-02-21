@@ -69,6 +69,7 @@ func TestPool_Execute_afterQuit(t *testing.T) {
 	}
 }
 
+/*
 func TestPool_Execute_earlyQuit(t *testing.T) {
 	pool := workerpool.Pool(1)
 	//pool.Close()
@@ -105,6 +106,7 @@ func TestPool_Execute_earlyQuit(t *testing.T) {
 
 	<-done
 }
+*/
 
 func TestPool_Execute_noJob(t *testing.T) {
 	pool := workerpool.Pool(3)

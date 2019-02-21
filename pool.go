@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"sync/atomic"
 )
 
 type pool struct {
-	pendings chan *poolAction
+	//pendings chan *poolAction
+	pendings chan *todo
 
 	quit     chan struct{}
 	quitOnce sync.Once
@@ -32,7 +34,8 @@ func (p *pool) Close() error {
 		// drain the pendings channel the invoke the callback
 		// to achieve a graceful quit
 		for pending := range p.pendings {
-			pending.doneCallback(ErrClosed)
+			//pending.doneCallback(ErrClosed)
+			pending.done(ErrClosed)
 		}
 		fmt.Println("#0")
 
@@ -74,30 +77,28 @@ func (p *pool) Execute(ctx context.Context, actions []Action) <-chan error {
 	orDone := &orDone{ctx, p.quit}
 
 	responses := make(chan error, int(nPending)+1)
-	var oncer sync.Once
-	closer := func(err ...error) {
-		fmt.Println("77")
-		oncer.Do(func() {
-			if len(err) > 0 {
-				responses <- err[0]
-			}
-			fmt.Println("hi")
+	//var oncer sync.Once
+	doneCallback := func(err error) {
+		if nil != err {
+			responses <- err
+		}
 
+		if 0 == atomic.AddInt32(&nPending, -1) {
 			close(responses)
-		})
+		}
+
+		//oncer.Do(func() {
+		//	fmt.Println("hi")
+		//	close(responses)
+		//})
 	}
 
 	done := orDone.Done()
 enqueue:
 	for _, action := range actions {
-		pending := &poolAction{orDone, action, responses, &nPending, closer}
+		pending := &todo{orDone, action, doneCallback}
 		select {
 		case <-done:
-			//responses <- orDone.Err()
-			// orDone.Err() should be pushed into responses by the closer()
-			// either by the pool.Close(), or
-			// by the last unblocked action within this batch
-			closer(ctx.Err()) // signal of early abort
 			break enqueue
 		case p.pendings <- pending: // enqueue action
 		}
@@ -124,8 +125,9 @@ func (p *pool) fork() {
 		select {
 		case <-p.quit:
 			return
-		case a := <-p.pendings:
-			a.Execute()
+		case todo := <-p.pendings:
+			//a.Execute()
+			todo.done(todo.action.Execute(todo.ctx))
 		}
 	}
 }
@@ -140,7 +142,8 @@ func Pool(n int) Executor {
 	}
 
 	p := &pool{
-		pendings: make(chan *poolAction, n),
+		//pendings: make(chan *poolAction, n),
+		pendings: make(chan *todo, n),
 		quit:     make(chan struct{}),
 	}
 
