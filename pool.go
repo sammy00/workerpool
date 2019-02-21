@@ -2,7 +2,6 @@ package workerpool
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -25,10 +24,7 @@ func (p *pool) Close() error {
 		close(p.quit)
 		// order of waiting should be taken more serious consideration later
 		p.workerWG.Wait() // wait for exit of workers
-		fmt.Println("#2")
-		p.execWG.Wait() // wait for exit of all active actions
-
-		fmt.Println("#1")
+		p.execWG.Wait()   // wait for exit of all active actions
 
 		close(p.pendings)
 		// drain the pendings channel the invoke the callback
@@ -37,7 +33,6 @@ func (p *pool) Close() error {
 			//pending.doneCallback(ErrClosed)
 			pending.done(ErrClosed)
 		}
-		fmt.Println("#0")
 
 		err = nil
 	})
@@ -102,8 +97,6 @@ enqueue:
 		case p.pendings <- pending: // enqueue action
 		}
 	}
-
-	fmt.Println("000")
 
 	return responses
 }

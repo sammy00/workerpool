@@ -2,7 +2,6 @@ package workerpool
 
 import (
 	"context"
-	"fmt"
 )
 
 type orDone struct {
@@ -30,7 +29,6 @@ func (ctx *orDone) Done() <-chan struct{} {
 func (ctx *orDone) Err() error {
 	select {
 	case <-ctx.Context.Done(): // ctx is closed by caller
-		fmt.Println("111111")
 		return ctx.Context.Err()
 	case <-ctx.done:
 		return ErrClosed
