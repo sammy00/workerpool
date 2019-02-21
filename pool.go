@@ -77,7 +77,6 @@ func (p *pool) Execute(ctx context.Context, actions []Action) <-chan error {
 	orDone := &orDone{ctx, p.quit}
 
 	responses := make(chan error, int(nPending)+1)
-	//var oncer sync.Once
 	doneCallback := func(err error) {
 		if nil != err {
 			responses <- err
@@ -86,19 +85,19 @@ func (p *pool) Execute(ctx context.Context, actions []Action) <-chan error {
 		if 0 == atomic.AddInt32(&nPending, -1) {
 			close(responses)
 		}
-
-		//oncer.Do(func() {
-		//	fmt.Println("hi")
-		//	close(responses)
-		//})
 	}
 
 	done := orDone.Done()
 enqueue:
-	for _, action := range actions {
+	for i, action := range actions {
 		pending := &todo{orDone, action, doneCallback}
 		select {
 		case <-done:
+			// drain the pending action list and error out
+			for ; i < len(actions); i++ {
+				doneCallback(orDone.Err())
+			}
+
 			break enqueue
 		case p.pendings <- pending: // enqueue action
 		}
