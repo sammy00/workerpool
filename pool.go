@@ -12,15 +12,16 @@ type pool struct {
 	quit     chan struct{}
 	quitOnce sync.Once
 	execWG   sync.WaitGroup
+	workerWG sync.WaitGroup
 }
 
 func (p *pool) Close() error {
 	err := ErrClosed
 
 	p.quitOnce.Do(func() {
-		//atomic.StoreInt32(&p.status, Stopped)
 		close(p.quit)
-		p.execWG.Wait() // wait for exit of all active actions
+		p.workerWG.Wait() // wait for exit of workers
+		p.execWG.Wait()   // wait for exit of all active actions
 
 		close(p.pendings)
 		// drain the pendings channel the invoke the callback
@@ -92,7 +93,8 @@ enqueue:
 
 // fork a worker responsible of taking job from p.in to do
 func (p *pool) fork() {
-	defer p.execWG.Done()
+	//defer p.execWG.Done()
+	defer p.workerWG.Done()
 
 	for {
 		select {
@@ -119,23 +121,10 @@ func Pool(n int) Executor {
 	}
 
 	for i := 0; i < n; i++ {
-		p.execWG.Add(1)
+		//p.execWG.Add(1)
+		p.workerWG.Add(1)
 		go p.fork()
 	}
 
 	return p
 }
-
-/*
-func newResponseStream(size int) (chan error, func()) {
-
-	responses := make(chan error, size)
-
-	var oncer sync.Once
-	closer := func() {
-		oncer.Do(func() { close(responses) })
-	}
-
-	return responses, closer
-}
-*/
