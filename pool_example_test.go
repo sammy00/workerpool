@@ -1,5 +1,6 @@
 package workerpool_test
 
+/*
 import (
 	"context"
 	"fmt"
@@ -46,3 +47,4 @@ func ExamplePool() {
 	// world
 	// hello
 }
+*/

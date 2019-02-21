@@ -66,8 +66,14 @@ func (p *pool) Execute(ctx context.Context, actions []Action) <-chan error {
 
 	responses := make(chan error, int(nPending)+1)
 	var oncer sync.Once
-	closer := func() {
-		oncer.Do(func() { close(responses) })
+	closer := func(err ...error) {
+		oncer.Do(func() {
+			if len(err) > 0 {
+				responses <- err[0]
+			}
+
+			close(responses)
+		})
 	}
 
 enqueue:

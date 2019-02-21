@@ -12,7 +12,8 @@ type poolAction struct {
 	// #(pending jobs) submit in the same batch to Execute
 	// zero-value means doneCallback should be invoked
 	nPendingPeers *int32
-	doneCallback  func()
+	//doneCallback  func()
+	doneCallback func(err ...error)
 }
 
 func (action *poolAction) Execute() {

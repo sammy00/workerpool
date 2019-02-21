@@ -11,9 +11,9 @@ type orDone struct {
 
 func (ctx *orDone) Done() <-chan struct{} {
 	select {
-	case <-ctx.Context.Done(): // ctx is closed by caller
+	case <-ctx.Context.Done(): // closed by caller through context
 		return ctx.Context.Done()
-	case <-ctx.done:
+	case <-ctx.done: // closed by caller through channel
 		return ctx.done
 	}
 }
