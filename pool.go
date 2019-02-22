@@ -7,29 +7,30 @@ import (
 	"sync/atomic"
 )
 
-type poolAction struct {
-	ctx      context.Context
-	action   Action
-	response chan<- error
-}
-
 type pool struct {
-	pendings chan poolAction
+	todos chan *todo
 
 	quit     chan struct{}
 	quitOnce sync.Once
-	status   Status
 	execWG   sync.WaitGroup
+	workerWG sync.WaitGroup
 }
 
 func (p *pool) Close() error {
 	err := ErrClosed
 
 	p.quitOnce.Do(func() {
-		atomic.StoreInt32(&p.status, Stopped)
 		close(p.quit)
-		p.execWG.Wait() // wait for exit of all active actions
-		close(p.pendings)
+		// TODO: order of waiting should be taken more serious consideration later
+		p.workerWG.Wait() // wait for exit of workers
+		p.execWG.Wait()   // wait for exit of all active actions
+
+		close(p.todos)
+		// drain the todos channel and invoke its callback
+		// to achieve a graceful quit
+		for pending := range p.todos {
+			pending.done(ErrClosed)
+		}
 
 		err = nil
 	})
@@ -37,71 +38,90 @@ func (p *pool) Close() error {
 	return err
 }
 
-// Execute enqueues all Actions on the worker pool, failing closed on the
-// first error or if ctx is cancelled. This method blocks until all enqueued
-// Actions have returned. In the event of an error, not all Actions may be
-// executed.
-//func (p pool) Execute(ctx context.Context, actions ...Action) error {
-func (p *pool) Execute(ctx context.Context, actions []Action,
-	failFast ...bool) error {
+// Execute delivers all input Actions on the worker pool, and get the a
+// stream for reading out responses. The close of the response steam is
+// handled by the pool internally, and it signals a done (no error, or
+// error out) of all actions submit in this batch.
+// The error handling is delegated to the caller who is responsible of
+// implementing any cancellation mechanism as she/he wants
+func (p *pool) Execute(ctx context.Context, actions []Action) <-chan error {
 	p.execWG.Add(1)
 	defer p.execWG.Done()
 
-	if Runnable != atomic.LoadInt32(&p.status) {
-		return ErrClosed
+	select {
+	case <-p.quit:
+		responses := make(chan error, 1)
+		responses <- ErrClosed
+		close(responses)
+
+		return responses
+	default:
 	}
 
-	qty := len(actions)
-	if qty == 0 {
-		return nil
+	nPending := int32(len(actions))
+	if nPending == 0 {
+		responses := make(chan error)
+		close(responses)
+		return responses
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	// unblocked in case of cancellation or quit
+	orDone := &orDone{ctx, p.quit}
 
-	res := make(chan error, qty)
+	// one more slot for early quit or cancellation
+	responses := make(chan error, int(nPending)+1)
+	// callback handling error responsed from any todo job
+	doneCallback := func(err error) {
+		if nil != err {
+			// TODO: more serious tackling of the case of closed responses later
+			responses <- err
+		}
 
-	var err error
-	var queued uint64
+		if 0 == atomic.AddInt32(&nPending, -1) {
+			close(responses)
+		}
+	}
 
+	// a composite done channel at the expense of a out-of-pool goroutine
+	done := orDone.Done()
 enqueue:
-	for _, action := range actions {
-		pa := poolAction{ctx: ctx, action: action, response: res}
+	for i, action := range actions {
+		pending := &todo{orDone, action, doneCallback}
 		select {
-		case <-p.quit: // pool is closed
-			return ErrClosed
-		case <-ctx.Done(): // ctx is closed by caller
-			err = ctx.Err()
-			break enqueue
-		case p.pendings <- pa: // enqueue action
-			queued++
-		}
-	}
-
-	for ; queued > 0; queued-- {
-		if r := <-res; r != nil && nil == err {
-			err = r
-
-			if len(failFast) > 0 && failFast[0] {
-				// should cancel all running jobs if fail fast is required
-				cancel()
+		case <-done:
+			// drain the pending action list and error out,
+			// which will also close the responses stream eventually to
+			// signal a truly done of this Execute
+			for ; i < len(actions); i++ {
+				doneCallback(orDone.Err())
 			}
+
+			break enqueue
+		case p.todos <- pending: // enqueue action
 		}
 	}
 
-	return err
+	return responses
 }
 
-// fork a worker responsible of taking job from p.in to do
+// fork a worker responsible of taking job from p.todos to do
 func (p *pool) fork() {
-	defer p.execWG.Done()
+	defer p.workerWG.Done()
 
 	for {
+
+		// favor quit checking
 		select {
 		case <-p.quit:
 			return
-		case a := <-p.pendings:
-			a.response <- a.action.Execute(a.ctx)
+		default:
+		}
+
+		select {
+		case <-p.quit:
+			return
+		case todo := <-p.todos:
+			todo.done(todo.action.Execute(todo.ctx))
 		}
 	}
 }
@@ -116,13 +136,12 @@ func Pool(n int) Executor {
 	}
 
 	p := &pool{
-		pendings: make(chan poolAction, n),
-		quit:     make(chan struct{}),
-		status:   Runnable,
+		todos: make(chan *todo, n),
+		quit:  make(chan struct{}),
 	}
 
 	for i := 0; i < n; i++ {
-		p.execWG.Add(1)
+		p.workerWG.Add(1)
 		go p.fork()
 	}
 

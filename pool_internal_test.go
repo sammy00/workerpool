@@ -1,6 +1,7 @@
 package workerpool
 
 import (
+	"context"
 	"runtime"
 	"testing"
 )
@@ -23,11 +24,47 @@ func TestPool(t *testing.T) {
 		exec := Pool(c.n)
 
 		pool := exec.(*pool)
-		if cap(pool.pendings) != c.expect {
+		if cap(pool.todos) != c.expect {
 			t.Fatalf("#%d failed: got pool size as %d, expect %d",
-				i, cap(pool.pendings), c.expect)
+				i, cap(pool.todos), c.expect)
 		}
 
 		exec.Close()
+	}
+}
+
+// this test demonstrate the scenario when all workers have quit,
+// followed by the closing operation without a non-empty pending queue
+func TestPool_Close_drainTodos(t *testing.T) {
+	dummyJob := func(context.Context) error {
+		return nil
+	}
+
+	var cbErr error
+	doneSpy := func(err error) {
+		cbErr = err
+	}
+
+	pool := Pool(2).(*pool)
+	pool.execWG.Add(1)
+
+	done := make(chan struct{})
+	go func() {
+		pool.Close()
+		close(done)
+	}()
+
+	pool.workerWG.Wait()
+	pool.todos <- &todo{
+		context.TODO(),
+		ActionFunc(dummyJob),
+		doneSpy,
+	}
+	pool.execWG.Done()
+
+	<-done
+
+	if cbErr != ErrClosed {
+		t.Fatalf("unexpected error: got %v, expect %v", cbErr, ErrClosed)
 	}
 }

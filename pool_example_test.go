@@ -7,42 +7,43 @@ import (
 	"github.com/sammyne/workerpool"
 )
 
-func SayHello(ctx context.Context) error {
-	fmt.Println("hello")
-	return nil
-}
-
-func SayWorld(ctx context.Context) error {
-	fmt.Println("world")
-	return nil
-}
-
 func ExamplePool() {
+	say := func(what string) workerpool.ActionFunc {
+		return workerpool.ActionFunc(
+			func(context.Context) error {
+				fmt.Println(what)
+				return nil
+			})
+	}
+
 	pool := workerpool.Pool(2)
-	//defer pool.Close()
 
 	ctx := context.TODO()
 	actions := []workerpool.Action{
-		workerpool.ActionFunc(SayHello),
-		workerpool.ActionFunc(SayWorld),
-		workerpool.ActionFunc(SayWorld),
-		workerpool.ActionFunc(SayHello),
+		say("how"),
+		say("do"),
+		say("you"),
+		say("do"),
 	}
 
-	if err := pool.Execute(ctx, actions, false); nil != err {
-		fmt.Println(err)
-		return
+	for response := range pool.Execute(ctx, actions) {
+		if nil != response {
+			fmt.Println("unexpected response:", response)
+		}
 	}
 
 	pool.Close()
 
-	if err := pool.Execute(ctx, actions); workerpool.ErrClosed != err {
-		fmt.Println("unexpected error:", err)
+	for response := range pool.Execute(ctx, actions) {
+		if response != workerpool.ErrClosed {
+			fmt.Printf("unexpected response: got %v, expect %v", response,
+				workerpool.ErrClosed)
+		}
 	}
 
 	// Unordered output:
-	// hello
-	// world
-	// world
-	// hello
+	// do
+	// you
+	// do
+	// how
 }
