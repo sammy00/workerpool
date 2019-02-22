@@ -111,6 +111,7 @@ func (p *pool) fork() {
 		// favor quit checking
 		select {
 		case <-p.quit:
+			return
 		default:
 		}
 

@@ -71,9 +71,7 @@ func TestPool_Execute_afterQuit(t *testing.T) {
 
 func TestPool_Execute_earlyQuit(t *testing.T) {
 	pool := workerpool.Pool(1)
-	//pool.Close()
 
-	//var doing int32
 	doing := make(chan struct{}, 3)
 	dummyJob := workerpool.ActionFunc(
 		func(ctx context.Context) error {
@@ -88,8 +86,6 @@ func TestPool_Execute_earlyQuit(t *testing.T) {
 	go func() {
 		defer close(done)
 
-		//for 0 == atomic.LoadInt32(&doing) {
-		//}
 		<-doing
 
 		pool.Close()
