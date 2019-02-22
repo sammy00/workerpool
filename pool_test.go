@@ -115,7 +115,7 @@ func TestPool_Execute_noJob(t *testing.T) {
 func TestPool_Execute_ok(t *testing.T) {
 	dummyJob := workerpool.ActionFunc(
 		func(ctx context.Context) error {
-			time.Sleep(time.Millisecond * 500)
+			time.Sleep(time.Millisecond * 100)
 			return nil
 		})
 	jobs := []workerpool.Action{dummyJob, dummyJob, dummyJob, dummyJob}
