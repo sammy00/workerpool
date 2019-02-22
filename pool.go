@@ -8,8 +8,8 @@ import (
 )
 
 type pool struct {
-	//pendings chan *poolAction
-	pendings chan *todo
+	//todos chan *poolAction
+	todos chan *todo
 
 	quit     chan struct{}
 	quitOnce sync.Once
@@ -26,10 +26,10 @@ func (p *pool) Close() error {
 		p.workerWG.Wait() // wait for exit of workers
 		p.execWG.Wait()   // wait for exit of all active actions
 
-		close(p.pendings)
-		// drain the pendings channel the invoke the callback
+		close(p.todos)
+		// drain the todos channel the invoke the callback
 		// to achieve a graceful quit
-		for pending := range p.pendings {
+		for pending := range p.todos {
 			//pending.doneCallback(ErrClosed)
 			pending.done(ErrClosed)
 		}
@@ -94,7 +94,7 @@ enqueue:
 			}
 
 			break enqueue
-		case p.pendings <- pending: // enqueue action
+		case p.todos <- pending: // enqueue action
 		}
 	}
 
@@ -117,7 +117,7 @@ func (p *pool) fork() {
 		select {
 		case <-p.quit:
 			return
-		case todo := <-p.pendings:
+		case todo := <-p.todos:
 			//a.Execute()
 			todo.done(todo.action.Execute(todo.ctx))
 		}
@@ -134,9 +134,9 @@ func Pool(n int) Executor {
 	}
 
 	p := &pool{
-		//pendings: make(chan *poolAction, n),
-		pendings: make(chan *todo, n),
-		quit:     make(chan struct{}),
+		//todos: make(chan *poolAction, n),
+		todos: make(chan *todo, n),
+		quit:  make(chan struct{}),
 	}
 
 	for i := 0; i < n; i++ {

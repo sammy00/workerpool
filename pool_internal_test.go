@@ -24,9 +24,9 @@ func TestPool(t *testing.T) {
 		exec := Pool(c.n)
 
 		pool := exec.(*pool)
-		if cap(pool.pendings) != c.expect {
+		if cap(pool.todos) != c.expect {
 			t.Fatalf("#%d failed: got pool size as %d, expect %d",
-				i, cap(pool.pendings), c.expect)
+				i, cap(pool.todos), c.expect)
 		}
 
 		exec.Close()
@@ -55,7 +55,7 @@ func TestPool_Close_drainTodos(t *testing.T) {
 	}()
 
 	pool.workerWG.Wait()
-	pool.pendings <- &todo{
+	pool.todos <- &todo{
 		context.TODO(),
 		ActionFunc(dummyJob),
 		doneSpy,
